@@ -11,6 +11,7 @@
 #import "PTPusher.h"
 #import "PTPusherChannel.h"
 #import "PTPusherEvent.h"
+#import "PTPusher+Testing.h"
 #import "PTPusherMockConnection.h"
 
 #define kUSE_ENCRYPTED_CONNECTION YES

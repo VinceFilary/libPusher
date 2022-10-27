@@ -22,22 +22,29 @@
  *
  ***********************************************************************************/
 
+// For SDK 7.1 Compatibility (as this macro was only included starting SDK 8.0)
+#ifndef NS_DESIGNATED_INITIALIZER
+  #if __has_attribute(objc_designated_initializer)
+    #define NS_DESIGNATED_INITIALIZER __attribute__((objc_designated_initializer))
+  #else
+    #define NS_DESIGNATED_INITIALIZER
+  #endif
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 #pragma mark - Imports
 
 #import <Foundation/Foundation.h>
-
-#import "Compatibility.h"
 #import "OHHTTPStubsResponse.h"
-
-NS_ASSUME_NONNULL_BEGIN
+// Because this is supposed to be an umbrella header, we should import every public headers here
+#import "OHHTTPStubsResponse+HTTPMessage.h"
+#import "OHHTTPStubsResponse+JSON.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 #pragma mark - Types
 
 typedef BOOL(^OHHTTPStubsTestBlock)(NSURLRequest* request);
-typedef OHHTTPStubsResponse* __nonnull (^OHHTTPStubsResponseBlock)( NSURLRequest* request);
+typedef OHHTTPStubsResponse*(^OHHTTPStubsResponseBlock)(NSURLRequest* request);
 
 /**
  *  This opaque type represents an installed stub and is used to uniquely
@@ -57,7 +64,7 @@ typedef OHHTTPStubsResponse* __nonnull (^OHHTTPStubsResponseBlock)( NSURLRequest
  *  This is especially useful if you dump all installed stubs using `allStubs`
  *  or if you want to log which stubs are being triggered using `onStubActivation:`.
  */
-@property(nonatomic, strong, nullable) NSString* name;
+@property(nonatomic, strong) NSString* name;
 @end
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -85,7 +92,7 @@ typedef OHHTTPStubsResponse* __nonnull (^OHHTTPStubsResponseBlock)( NSURLRequest
  *  @return a stub descriptor that uniquely identifies the stub and can be later used to remove it with `removeStub:`.
  *
  *  @note The returned stub descriptor is retained (`__strong` reference) by `OHHTTPStubs`
- *        until it is removed (with one of the `removeStub:` / `removeAllStubs`
+ *        until it is removed (with one of the `removeStub:`/`removeLastStub`/`removeAllStubs`
  *        methods); it is thus recommended to keep it in a `__weak` storage (and not `__strong`)
  *        in your app code, to let the stub descriptor be destroyed and let the variable go
  *        back to `nil` automatically when the stub is removed.
@@ -103,6 +110,11 @@ typedef OHHTTPStubsResponse* __nonnull (^OHHTTPStubsResponseBlock)( NSURLRequest
  *          not a valid stub identifier
  */
 +(BOOL)removeStub:(id<OHHTTPStubsDescriptor>)stubDesc;
+
+/**
+ *  Remove the last added stub from the stubs list
+ */
++(void)removeLastStub;
 
 /**
  *  Remove all the stubs from the stubs list.
@@ -128,13 +140,6 @@ typedef OHHTTPStubsResponse* __nonnull (^OHHTTPStubsResponseBlock)( NSURLRequest
  */
 +(void)setEnabled:(BOOL)enabled;
 
-/**
- *  Whether or not stubs are enabled for the shared session or for `NSURLConnection`
- *
- *  @return If `YES` the stubs are enabled. If `NO` then the stubs are disabled
- */
-+(BOOL)isEnabled;
-
 #if defined(__IPHONE_7_0) || defined(__MAC_10_9)
 /**
  *  Enable or disable the stubs on a given `NSURLSessionConfiguration`.
@@ -156,15 +161,6 @@ typedef OHHTTPStubsResponse* __nonnull (^OHHTTPStubsResponseBlock)( NSURLRequest
  *        created sessions.
  */
 + (void)setEnabled:(BOOL)enabled forSessionConfiguration:(NSURLSessionConfiguration *)sessionConfig;
-
-/**
- *  Whether stubs are enabled or disabled on a given `NSURLSessionConfiguration`
- *
- *  @param sessionConfig The NSURLSessionConfiguration on which to enable/disable the stubs
- *
- *  @return If `YES` the stubs are enabled for sessionConfig. If `NO` then the stubs are disabled
- */
-+ (BOOL)isEnabledForSessionConfiguration:(NSURLSessionConfiguration *)sessionConfig;
 #endif
 
 #pragma mark - Debug Methods
@@ -185,27 +181,7 @@ typedef OHHTTPStubsResponse* __nonnull (^OHHTTPStubsResponseBlock)( NSURLRequest
  *  @param block The block to call each time a request is being stubbed by OHHTTPStubs.
  *               Set it to `nil` to do nothing. Defaults is `nil`.
  */
-+(void)onStubActivation:( nullable void(^)(NSURLRequest* request, id<OHHTTPStubsDescriptor> stub, OHHTTPStubsResponse* responseStub) )block;
-
-/**
- *  Setup a block to be called whenever OHHTTPStubs encounters a redirect request.
- *
- *  @param block The block to call each time a redirect request is being stubbed by OHHTTPStubs. 
- *               Set it to `nil` to do nothing. Defaults is `nil`.
- */
-+(void)onStubRedirectResponse:( nullable void(^)(NSURLRequest* request, NSURLRequest* redirectRequest, id<OHHTTPStubsDescriptor> stub, OHHTTPStubsResponse* responseStub) )block;
-
-/**
- *  Setup a block to be called each time a stub finishes. Useful if stubs take an insignificant amount
- *  of time to execute (due to low bandwidth or delayed response time). This block may also be called
- *  if there are errors generated by OHHTTPStubs in the course of executing a network request.
- *
- *  @param block The block to call each time a request is finished being stubbed by OHHTTPStubs. 
- *               Set it to `nil` to do nothing. Defaults is `nil`.
- */
-+(void)afterStubFinish:( nullable void(^)(NSURLRequest* request, id<OHHTTPStubsDescriptor> stub, OHHTTPStubsResponse* responseStub, NSError *error) )block;
++(void)onStubActivation:( void(^)(NSURLRequest* request, id<OHHTTPStubsDescriptor> stub) )block;
 
 @end
-
-NS_ASSUME_NONNULL_END
 

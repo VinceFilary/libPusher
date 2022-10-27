@@ -9,7 +9,7 @@
 #import "PTPusherMockConnection.h"
 #import "PTJSON.h"
 #import "PTPusherEvent.h"
-#import <SocketRocket/SRWebSocket.h>
+#import "SRWebSocket.h"
 
 @interface PTPusherConnection () <SRWebSocketDelegate>
 @end
@@ -40,7 +40,7 @@
 
 - (void)disconnect
 {
-  [self webSocket:nil didCloseWithCode:self.disconnectionCode reason:nil wasClean:YES];
+  [self webSocket:nil didCloseWithCode:0 reason:nil wasClean:YES];
 }
 
 - (void)send:(id)object

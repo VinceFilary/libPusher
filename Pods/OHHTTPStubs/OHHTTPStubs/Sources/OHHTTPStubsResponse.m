@@ -33,8 +33,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 #pragma mark - Defines & Constants
-const double OHHTTPStubsDownloadSpeed1KBPS  =-     8 / 8; // kbps -> KB/s
-const double OHHTTPStubsDownloadSpeedSLOW   =-    12 / 8; // kbps -> KB/s
+
 const double OHHTTPStubsDownloadSpeedGPRS   =-    56 / 8; // kbps -> KB/s
 const double OHHTTPStubsDownloadSpeedEDGE   =-   128 / 8; // kbps -> KB/s
 const double OHHTTPStubsDownloadSpeed3G     =-  3200 / 8; // kbps -> KB/s
@@ -54,7 +53,7 @@ const double OHHTTPStubsDownloadSpeedWifi   =- 12000 / 8; // kbps -> KB/s
 
 +(instancetype)responseWithData:(NSData*)data
                      statusCode:(int)statusCode
-                        headers:(nullable NSDictionary*)httpHeaders
+                        headers:(NSDictionary*)httpHeaders
 {
     OHHTTPStubsResponse* response = [[self alloc] initWithData:data
                                                     statusCode:statusCode
@@ -67,7 +66,7 @@ const double OHHTTPStubsDownloadSpeedWifi   =- 12000 / 8; // kbps -> KB/s
 
 +(instancetype)responseWithFileAtPath:(NSString *)filePath
                            statusCode:(int)statusCode
-                              headers:(nullable NSDictionary *)httpHeaders
+                              headers:(NSDictionary *)httpHeaders
 {
     OHHTTPStubsResponse* response = [[self alloc] initWithFileAtPath:filePath
                                                           statusCode:statusCode
@@ -75,15 +74,6 @@ const double OHHTTPStubsDownloadSpeedWifi   =- 12000 / 8; // kbps -> KB/s
     return response;
 }
 
-+(instancetype)responseWithFileURL:(NSURL *)fileURL
-                        statusCode:(int)statusCode
-                           headers:(nullable NSDictionary *)httpHeaders
-{
-    OHHTTPStubsResponse* response = [[self alloc] initWithFileURL:fileURL
-                                                       statusCode:statusCode
-                                                          headers:httpHeaders];
-    return response;
-}
 
 #pragma mark > Building an error response
 
@@ -112,16 +102,10 @@ const double OHHTTPStubsDownloadSpeedWifi   =- 12000 / 8; // kbps -> KB/s
 ////////////////////////////////////////////////////////////////////////////////
 #pragma mark - Initializers
 
--(instancetype)init
-{
-    self = [super init];
-    return self;
-}
-
 -(instancetype)initWithInputStream:(NSInputStream*)inputStream
                           dataSize:(unsigned long long)dataSize
                         statusCode:(int)statusCode
-                           headers:(nullable NSDictionary*)httpHeaders
+                           headers:(NSDictionary*)httpHeaders
 {
     self = [super init];
     if (self)
@@ -142,48 +126,31 @@ const double OHHTTPStubsDownloadSpeedWifi   =- 12000 / 8; // kbps -> KB/s
 
 -(instancetype)initWithFileAtPath:(NSString*)filePath
                        statusCode:(int)statusCode
-                          headers:(nullable NSDictionary*)httpHeaders
+                          headers:(NSDictionary*)httpHeaders
 {
-    NSURL *fileURL = filePath ? [NSURL fileURLWithPath:filePath] : nil;
-    self = [self initWithFileURL:fileURL
-                      statusCode:statusCode
-                         headers:httpHeaders];
-    return self;
-}
-
--(instancetype)initWithFileURL:(NSURL *)fileURL
-                    statusCode:(int)statusCode
-                       headers:(nullable NSDictionary *)httpHeaders {
-    if (!fileURL) {
+    NSInputStream* inputStream;
+    if (filePath)
+    {
+        inputStream = [NSInputStream inputStreamWithFileAtPath:filePath];
+    }
+    else
+    {
         NSLog(@"%s: nil file path. Returning empty data", __PRETTY_FUNCTION__);
-        return [self initWithInputStream:[NSInputStream inputStreamWithData:[NSData data]]
-                                dataSize:0
-                              statusCode:statusCode
-                                 headers:httpHeaders];
+        inputStream = [NSInputStream inputStreamWithData:[NSData data]];
     }
     
-    // [NSURL -isFileURL] is only available on iOS 8+
-    NSAssert([fileURL.scheme isEqualToString:NSURLFileScheme], @"%s: Only file URLs may be passed to this method.",__PRETTY_FUNCTION__);
-    
-    NSNumber *fileSize;
-    NSError *error;
-    const BOOL success __unused = [fileURL getResourceValue:&fileSize forKey:NSURLFileSizeKey error:&error];
-    
-    NSAssert(success && fileSize, @"%s Couldn't get the file size for URL. \
-The URL was: %@. \
-The operation to retrieve the file size was %@. \
-The error associated with that operation was: %@",
-             __PRETTY_FUNCTION__, fileURL, success ? @"successful" : @"unsuccessful", error);
-    
-    return [self initWithInputStream:[NSInputStream inputStreamWithURL:fileURL]
-                            dataSize:[fileSize unsignedLongLongValue]
+    NSDictionary* attributes = [NSFileManager.defaultManager attributesOfItemAtPath:filePath error:nil];
+    unsigned long long fileSize = [[attributes valueForKey:NSFileSize] unsignedLongLongValue];
+    self = [self initWithInputStream:inputStream
+                            dataSize:fileSize
                           statusCode:statusCode
                              headers:httpHeaders];
+    return self;
 }
 
 -(instancetype)initWithData:(NSData*)data
                  statusCode:(int)statusCode
-                    headers:(nullable NSDictionary*)httpHeaders
+                    headers:(NSDictionary*)httpHeaders
 {
     NSInputStream* inputStream = [NSInputStream inputStreamWithData:data?:[NSData data]];
     self = [self initWithInputStream:inputStream
